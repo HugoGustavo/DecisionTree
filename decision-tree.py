@@ -91,11 +91,63 @@ def createTree(dataset, labels):
     
     return tree
 
+def loadTestset(filename):
+    testset = []
+    with open(filename) as file:
+        rows = csv.reader(file, delimiter=',')
+        for row in rows:
+            vector = []
+            for i in range(0, len(row)):
+                vector.append(str(row[i]))
+            testset.append(vector)
+    return testset
+
+def testExample(example, tree):
+    if 'won' == tree or 'nowin' == tree:
+        return tree
+
+    attribute = list(tree.keys())[0]
+    index_attribute = int(attribute.replace('@attribute V', '').strip()) - 1
+    for (key, value) in tree[attribute].items():
+        if example[index_attribute] == key:
+            return testExample(example, value)
+
+def saveClassification(example, classification):
+    with open('classification.txt', 'a', newline='') as classification_file:
+        classification_file.write(str(example) + ' => ' + str(classification) + '\n')
+
+def clearClassificationFile():
+     with open('classification.txt', 'w', newline='') as _ :
+        pass
+
+def testSample(sample, tree):
+    clearClassificationFile()
+    correctClassification = 0
+    for example in sample:
+        classification = testExample(example, tree)
+        saveClassification(example, classification)
+        if classification == example[-1]:
+            correctClassification = correctClassification + 1
+    
+    lengthOfSample = len(sample)
+    accuracy = float(correctClassification / lengthOfSample)
+    errorRate = 1.0 - accuracy
+
+    print('Number of cases  : ' + str(lengthOfSample))
+    print('Accuracy         : ' + str(accuracy))
+    print('Error Rate       : ' + str(errorRate))
+
+def saveTree(tree):
+    with open('tree.txt', 'w') as tree_file:
+        json.dump(tree, tree_file, indent=4)
 
 def main():
     (dataset, labels) = loadDataset('Xadrez-data.txt')
     tree = createTree(dataset, labels)
-    print(json.dumps(tree, sort_keys=True, indent=4))
+    saveTree(tree)
+
+    sample = loadTestset('Xadrez-test.txt')
+    testSample(sample, tree)
 
 if __name__ == "__main__":
     main()
